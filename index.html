@@ -131,6 +131,12 @@
       max-height: 120px;
       object-fit: contain;
       display: none;
+      cursor: pointer; /* Indica que é clicável */
+      transition: transform 0.2s;
+    }
+
+    .item-foto-container img:hover {
+      transform: scale(1.05);
     }
 
     .item-foto-placeholder {
@@ -164,6 +170,47 @@
       right: 15px;
     }
     .btn-remover:hover { background-color: var(--cor-perigo-hover); }
+
+    /* MODAL DE IMAGEM (LIGHTBOX) */
+    .modal {
+      display: none;
+      position: fixed;
+      z-index: 1000;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(5px);
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-content {
+      max-width: 90%;
+      max-height: 90%;
+      border-radius: 8px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      animation: zoomIn 0.3s ease;
+    }
+
+    @keyframes zoomIn {
+      from {transform: scale(0.8); opacity: 0;}
+      to {transform: scale(1); opacity: 1;}
+    }
+
+    .fechar-modal {
+      position: absolute;
+      top: 20px;
+      right: 30px;
+      color: #fff;
+      font-size: 40px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .fechar-modal:hover { color: var(--cor-perigo); }
 
     /* BOTÃO PRINCIPAL */
     .btn-principal { 
@@ -199,6 +246,11 @@
   </style>
 </head>
 <body>
+
+  <div id="modalImagem" class="modal" onclick="fecharModal()">
+    <span class="fechar-modal">&times;</span>
+    <img class="modal-content" id="imgModal" src="">
+  </div>
 
   <h1>Registro de Entrada de Equipamentos</h1>
   <div class="status-bd" id="statusBD">⏳ Conectando ao Banco de Dados (datashock.ods)...</div>
@@ -343,7 +395,7 @@
         
         <div class="item-foto-container">
           <div class="item-foto-placeholder" id="placeholder_${id}">Foto do Item</div>
-          <img id="foto_${id}" src="" onerror="erroImagem(${id}, this)">
+          <img id="foto_${id}" src="" data-codigo="" data-ext="jpg" onerror="lidarErroImagem(${id}, this)" onclick="abrirModal(this.src)" title="Clique para ampliar">
         </div>
 
         ${id > 1 ? `<button type="button" class="btn-remover" onclick="removerEquipamento(${id})">Excluir</button>` : ''}
@@ -351,7 +403,6 @@
       
       container.appendChild(div);
 
-      // Se o banco falhou no carregamento, libera os campos de nome para edição
       if(Object.keys(bancoXML).length === 0) {
         document.getElementById(`nome_${id}`).readOnly = false;
         document.getElementById(`nome_${id}`).placeholder = "Digite o nome...";
@@ -378,7 +429,7 @@
         return;
       }
 
-      // Regra: Arredonda sempre para 6 dígitos
+      // Padroniza para 6 dígitos
       let codigoFormatado = valorOriginal.padStart(6, '0');
       inputElement.value = codigoFormatado;
 
@@ -393,17 +444,44 @@
         }
       }
 
-      // Busca Imagem
+      // Configura a lógica inicial para buscar a imagem (.jpg primeiro)
       placeholder.style.display = 'none';
       imgElement.style.display = 'block';
-      imgElement.src = `img/${codigoFormatado}.png`; 
+      imgElement.dataset.codigo = codigoFormatado;
+      imgElement.dataset.ext = 'jpg'; // Define estado inicial como JPG
+      imgElement.src = `img/${codigoFormatado}.jpg`; 
     }
 
-    function erroImagem(id, imgElement) {
-      const placeholder = document.getElementById(`placeholder_${id}`);
-      imgElement.style.display = 'none';
-      placeholder.style.display = 'block';
-      placeholder.innerHTML = `<span style="color: var(--cor-perigo);">❌ Sem Foto<br><small>(${imgElement.src.split('/').pop()})</small></span>`;
+    // ==========================================
+    // CONTROLE DE IMAGENS (FALLBACK JPG -> PNG) E MODAL
+    // ==========================================
+    function lidarErroImagem(id, imgElement) {
+      const codigo = imgElement.dataset.codigo;
+      
+      if (imgElement.dataset.ext === 'jpg') {
+        // Se a tentativa em JPG falhou, tenta recarregar em PNG
+        imgElement.dataset.ext = 'png';
+        imgElement.src = `img/${codigo}.png`;
+      } else {
+        // Se a tentativa em PNG também falhou, exibe mensagem de erro
+        const placeholder = document.getElementById(`placeholder_${id}`);
+        imgElement.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.innerHTML = `<span style="color: var(--cor-perigo);">❌ Sem Foto<br><small>(${codigo}.jpg / .png)</small></span>`;
+      }
+    }
+
+    function abrirModal(src) {
+      const modal = document.getElementById('modalImagem');
+      const imgModal = document.getElementById('imgModal');
+      imgModal.src = src;
+      modal.style.display = 'flex';
+    }
+
+    function fecharModal() {
+      const modal = document.getElementById('modalImagem');
+      modal.style.display = 'none';
+      document.getElementById('imgModal').src = "";
     }
 
     // ==========================================
@@ -419,7 +497,6 @@
       btn.textContent = '⏳ Processando e Enviando...';
       statusMsg.textContent = '';
 
-      // Coleta os equipamentos preenchidos
       const equipamentosArray = [];
       const itensHtml = document.querySelectorAll('.item-equipamento');
       
@@ -439,7 +516,6 @@
         return;
       }
 
-      // Monta o pacote de dados (Payload)
       const payload = {
         agendamento: document.getElementById('agendamento').value.trim(),
         cliente: document.getElementById('cliente').value.trim(),
@@ -459,7 +535,6 @@
         statusMsg.style.color = 'var(--cor-sucesso)';
         statusMsg.textContent = `✅ Sucesso! ${equipamentosArray.length} produto(s) registrado(s) para o Agendamento ${payload.agendamento}.`;
         
-        // Limpa e reseta o formulário
         document.getElementById('entradaForm').reset();
         document.getElementById('containerEquipamentos').innerHTML = '';
         itemCount = 0;
