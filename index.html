@@ -8,7 +8,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
   <style>
-    /* --- ESTILO GERAL DO FORMULÁRIO (RESTAURADO) --- */
+    /* --- ESTILO GERAL DO FORMULÁRIO --- */
     :root {
       --cor-primaria: #002060;
       --cor-fundo: #8ad6cf;
@@ -76,7 +76,6 @@
     }
     
     .form-group { margin-bottom: 10px; }
-    .form-group.full-width { grid-column: 1 / -1; }
     
     label { 
       display: block; 
@@ -86,7 +85,7 @@
       font-size: 14px;
     }
     
-    input[type="text"], input[type="number"], input[type="date"], input[type="time"] {
+    input[type="text"], input[type="number"] {
       width: 100%; 
       padding: 10px; 
       border-radius: 4px; 
@@ -97,40 +96,74 @@
     }
 
     input:focus { outline: none; border-color: var(--cor-primaria); }
+    input:read-only { background-color: #e9ecef; color: #495057; cursor: not-allowed; }
 
-    input:read-only {
-      background-color: #e9ecef;
-      color: #495057;
-      cursor: not-allowed;
+    /* ESTILOS DOS ITENS DINÂMICOS */
+    .item-equipamento {
+      background-color: #f8f9fa;
+      border: 1px solid var(--cor-borda);
+      border-radius: 8px;
+      padding: 15px;
+      margin-bottom: 15px;
+      position: relative;
+      display: flex;
+      gap: 20px;
     }
 
-    /* ESTILOS DA IMAGEM ADAPTADOS AO LAYOUT ORIGINAL */
-    .imagem-container {
+    .item-dados { flex: 2; }
+    .item-foto-container {
+      flex: 1;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
-      min-height: 200px;
-      background-color: #f8f9fa;
+      background-color: #fff;
       border: 2px dashed var(--cor-borda);
-      border-radius: 8px;
-      padding: 10px;
-      margin-top: 10px;
+      border-radius: 6px;
+      min-height: 120px;
+      max-width: 200px;
+      padding: 5px;
+      text-align: center;
+      overflow: hidden;
     }
 
-    .imagem-container img {
+    .item-foto-container img {
       max-width: 100%;
-      max-height: 300px;
+      max-height: 120px;
       object-fit: contain;
       display: none;
     }
 
-    .imagem-placeholder {
-      text-align: center;
+    .item-foto-placeholder {
+      font-size: 12px;
       color: #6c757d;
+    }
+
+    .btn-adicionar {
+      background-color: var(--cor-primaria);
+      color: white;
+      border: none;
+      padding: 8px 15px;
+      border-radius: 4px;
+      cursor: pointer;
       font-size: 14px;
       font-weight: bold;
     }
+    .btn-adicionar:hover { background-color: #001540; }
+
+    .btn-remover {
+      background-color: var(--cor-perigo);
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: bold;
+      position: absolute;
+      top: 15px;
+      right: 15px;
+    }
+    .btn-remover:hover { background-color: var(--cor-perigo-hover); }
 
     /* BOTÃO PRINCIPAL */
     .btn-principal { 
@@ -157,6 +190,12 @@
         margin-top: 15px;
         font-size: 16px;
     }
+
+    /* Ajuste para telas menores */
+    @media (max-width: 600px) {
+      .item-equipamento { flex-direction: column; }
+      .item-foto-container { max-width: 100%; min-height: 150px; }
+    }
   </style>
 </head>
 <body>
@@ -167,7 +206,7 @@
   <form id="entradaForm">
     
     <div class="form-section">
-      <h2>Dados de Entrada e Equipamento</h2>
+      <h2>Dados Gerais</h2>
       
       <div class="form-row">
         <div class="form-group">
@@ -175,43 +214,35 @@
           <input type="number" id="agendamento" required placeholder="Número do agendamento">
         </div>
         <div class="form-group">
-          <label>Código do Equipamento (Col B):</label>
-          <input type="text" id="codigo" required placeholder="Digite o código (ex: 123)" onblur="processarCodigo(this)">
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group full-width">
-          <label>Nome do Equipamento (Col C):</label>
-          <input type="text" id="nomeEquipamento" required readonly placeholder="Será preenchido automaticamente pela planilha">
+          <label>Cliente (Col B):</label>
+          <input type="text" id="cliente" required placeholder="Nome do Cliente">
         </div>
       </div>
 
       <div class="form-row">
         <div class="form-group">
-          <label>Data Atual (Col F):</label>
+          <label>Data Atual (Col G):</label>
           <input type="text" id="dataAtual" required readonly>
         </div>
         <div class="form-group">
-          <label>Horário Atual (Col G):</label>
+          <label>Horário Atual (Col H):</label>
           <input type="text" id="horarioAtual" required readonly>
         </div>
       </div>
     </div>
 
     <div class="form-section">
-      <h2>Foto do Equipamento</h2>
-      <div class="imagem-container" id="containerFoto">
-        <div class="imagem-placeholder" id="placeholderFoto">
-          Aguardando preenchimento do código...<br>
-          <span style="font-size: 12px; font-weight: normal;">(A imagem deve estar na pasta "img" no formato .jpg)</span>
+      <h2>
+        Equipamentos
+        <button type="button" class="btn-adicionar" onclick="adicionarEquipamento()">+ Adicionar Produto</button>
+      </h2>
+      
+      <div id="containerEquipamentos">
         </div>
-        <img id="fotoEquipamento" src="" alt="Foto do Equipamento" onerror="erroImagem()">
-      </div>
     </div>
 
     <div class="action-container">
-      <button type="submit" class="btn-principal" id="btnGerar">Registrar na Planilha de Agendamentos</button>
+      <button type="submit" class="btn-principal" id="btnGerar">Registrar na Planilha</button>
       <div id="statusMensagem"></div>
     </div>
 
@@ -219,12 +250,11 @@
 
   <script>
     // ==========================================
-    // CONFIGURAÇÕES
+    // CONFIGURAÇÕES GERAIS
     // ==========================================
-    // Substitua a URL abaixo pela gerada no seu Google Apps Script (Passo 1)
     const GOOGLE_WEBAPP_URL = 'https://script.google.com/macros/s/AKfycby71jdg4zcudOYmfj_yI1_a-K_KCtuw-1EoX14ki61y8Co681HHSFWOdXtsQPcNpP-xvg/exec'; 
-    
     let bancoXML = {};
+    let itemCount = 0;
 
     // ==========================================
     // INICIALIZAÇÃO
@@ -232,25 +262,22 @@
     document.addEventListener("DOMContentLoaded", () => {
       iniciarRelogio();
       carregarBancoDeDadosODS();
+      adicionarEquipamento(); // Adiciona o primeiro slot obrigatório
     });
 
-    // Atualiza os campos de Data e Hora em tempo real
     function iniciarRelogio() {
       atualizarDataHora();
       setInterval(atualizarDataHora, 1000);
     }
 
     function atualizarDataHora() {
-      const campoData = document.getElementById('dataAtual');
-      const campoHorario = document.getElementById('horarioAtual');
       const agora = new Date();
-      
-      campoData.value = agora.toLocaleDateString('pt-BR');
-      campoHorario.value = agora.toLocaleTimeString('pt-BR');
+      document.getElementById('dataAtual').value = agora.toLocaleDateString('pt-BR');
+      document.getElementById('horarioAtual').value = agora.toLocaleTimeString('pt-BR');
     }
 
     // ==========================================
-    // LEITURA DO ARQUIVO ODS (DATASHOCK.ODS)
+    // LEITURA DO ARQUIVO ODS
     // ==========================================
     async function carregarBancoDeDadosODS() {
       const statusElement = document.getElementById('statusBD');
@@ -271,93 +298,119 @@
           if(linha && linha[0] && linha[1]) {
             let cod = linha[0].toString().trim();
             let nome = linha[1].toString().trim();
-            // Padroniza com 6 dígitos ao carregar na memória
-            bancoXML[cod.padStart(6, '0')] = nome;
+            bancoXML[cod.padStart(6, '0')] = nome; // Padroniza para 6 dígitos
             qtdCarregada++;
           }
         }
         
-        statusElement.textContent = `✅ Banco de Dados Carregado (${qtdCarregada} itens prontas)`;
+        statusElement.textContent = `✅ Banco de Dados Carregado (${qtdCarregada} itens)`;
         statusElement.style.color = '#002060';
         statusElement.style.backgroundColor = '#e8f5e9';
       } catch (error) {
         console.warn(error);
-        statusElement.textContent = "⚠️ Não foi possível carregar 'datashock.ods'. Verifique o arquivo.";
+        statusElement.textContent = "⚠️ 'datashock.ods' offline. Modo manual ativado.";
         statusElement.style.color = '#dc3545';
         statusElement.style.backgroundColor = '#f8d7da';
-        
-        document.getElementById('nomeEquipamento').readOnly = false;
-        document.getElementById('nomeEquipamento').placeholder = "Digite manualmente, BD offline.";
       }
     }
 
     // ==========================================
-    // LÓGICA DE PREENCHIMENTO E IMAGEM
+    // LÓGICA DE MÚLTIPLOS EQUIPAMENTOS
     // ==========================================
-    function processarCodigo(inputElement) {
+    function adicionarEquipamento() {
+      itemCount++;
+      const id = itemCount;
+      const container = document.getElementById('containerEquipamentos');
+      
+      const div = document.createElement('div');
+      div.className = 'item-equipamento';
+      div.id = `item_${id}`;
+      
+      div.innerHTML = `
+        <div class="item-dados">
+          <div style="font-weight: bold; color: var(--cor-primaria); margin-bottom: 10px;">
+            Produto #${id}
+          </div>
+          <div class="form-group">
+            <label>Código (Col C):</label>
+            <input type="text" class="input-codigo" required placeholder="Digite o código" onblur="processarCodigo(this, ${id})">
+          </div>
+          <div class="form-group">
+            <label>Nome do Equipamento (Col D):</label>
+            <input type="text" id="nome_${id}" class="input-nome" required readonly placeholder="Aguardando código...">
+          </div>
+        </div>
+        
+        <div class="item-foto-container">
+          <div class="item-foto-placeholder" id="placeholder_${id}">Foto do Item</div>
+          <img id="foto_${id}" src="" onerror="erroImagem(${id}, this)">
+        </div>
+
+        ${id > 1 ? `<button type="button" class="btn-remover" onclick="removerEquipamento(${id})">Excluir</button>` : ''}
+      `;
+      
+      container.appendChild(div);
+
+      // Se o banco falhou no carregamento, libera os campos de nome para edição
+      if(Object.keys(bancoXML).length === 0) {
+        document.getElementById(`nome_${id}`).readOnly = false;
+        document.getElementById(`nome_${id}`).placeholder = "Digite o nome...";
+      }
+    }
+
+    function removerEquipamento(id) {
+      const elemento = document.getElementById(`item_${id}`);
+      if(elemento) elemento.remove();
+    }
+
+    function processarCodigo(inputElement, id) {
       let valorOriginal = inputElement.value.trim();
+      const campoNome = document.getElementById(`nome_${id}`);
+      const imgElement = document.getElementById(`foto_${id}`);
+      const placeholder = document.getElementById(`placeholder_${id}`);
       
       if (!valorOriginal) {
-        resetarVisualizacao();
+        campoNome.value = '';
+        campoNome.style.borderColor = "var(--cor-borda)";
+        imgElement.style.display = 'none';
+        placeholder.style.display = 'block';
+        placeholder.innerHTML = 'Foto do Item';
         return;
       }
 
-      // Regra de arredondamento para 6 dígitos
+      // Regra: Arredonda sempre para 6 dígitos
       let codigoFormatado = valorOriginal.padStart(6, '0');
       inputElement.value = codigoFormatado;
 
-      // Buscar Nome
-      const campoNome = document.getElementById('nomeEquipamento');
-      if (bancoXML[codigoFormatado]) {
-        campoNome.value = bancoXML[codigoFormatado];
-        campoNome.style.borderColor = "var(--cor-sucesso)";
-      } else {
-        campoNome.value = "Equipamento não localizado";
-        campoNome.style.borderColor = "var(--cor-perigo)";
+      // Busca Nome
+      if (Object.keys(bancoXML).length > 0) {
+        if (bancoXML[codigoFormatado]) {
+          campoNome.value = bancoXML[codigoFormatado];
+          campoNome.style.borderColor = "var(--cor-sucesso)";
+        } else {
+          campoNome.value = "Não localizado";
+          campoNome.style.borderColor = "var(--cor-perigo)";
+        }
       }
 
-      // Buscar Imagem
-      carregarImagem(codigoFormatado);
-    }
-
-    function carregarImagem(codigo) {
-      const imgElement = document.getElementById('fotoEquipamento');
-      const placeholder = document.getElementById('placeholderFoto');
-      
+      // Busca Imagem
       placeholder.style.display = 'none';
       imgElement.style.display = 'block';
-      imgElement.src = `img/${codigo}.jpg`; 
+      imgElement.src = `img/${codigoFormatado}.jpg`; 
     }
 
-    function erroImagem() {
-      const imgElement = document.getElementById('fotoEquipamento');
-      const placeholder = document.getElementById('placeholderFoto');
-      
+    function erroImagem(id, imgElement) {
+      const placeholder = document.getElementById(`placeholder_${id}`);
       imgElement.style.display = 'none';
       placeholder.style.display = 'block';
-      placeholder.innerHTML = `<span style="color: var(--cor-perigo);">❌ Foto (img/${imgElement.src.split('/').pop()}) não encontrada na pasta.</span>`;
-    }
-
-    function resetarVisualizacao() {
-      document.getElementById('nomeEquipamento').value = '';
-      document.getElementById('nomeEquipamento').style.borderColor = "var(--cor-borda)";
-      document.getElementById('fotoEquipamento').style.display = 'none';
-      
-      const placeholder = document.getElementById('placeholderFoto');
-      placeholder.style.display = 'block';
-      placeholder.innerHTML = 'Aguardando preenchimento do código...<br><span style="font-size: 12px; font-weight: normal;">(A imagem deve estar na pasta "img" no formato .jpg)</span>';
+      placeholder.innerHTML = `<span style="color: var(--cor-perigo);">❌ Sem Foto<br><small>(${imgElement.src.split('/').pop()})</small></span>`;
     }
 
     // ==========================================
-    // ENVIO PARA O GOOGLE SHEETS
+    // ENVIO DOS DADOS AO GOOGLE SHEETS
     // ==========================================
     document.getElementById('entradaForm').addEventListener('submit', async function(e) {
       e.preventDefault();
-
-      if (GOOGLE_WEBAPP_URL === 'COLE_AQUI_A_URL_DO_SEU_WEB_APP') {
-        alert("Atenção: Você precisa colar a URL do seu Google Apps Script na constante GOOGLE_WEBAPP_URL no código fonte.");
-        return;
-      }
 
       const btn = document.getElementById('btnGerar');
       const statusMsg = document.getElementById('statusMensagem');
@@ -366,13 +419,33 @@
       btn.textContent = '⏳ Processando e Enviando...';
       statusMsg.textContent = '';
 
-      // Monta o JSON com os dados das colunas mapeadas
+      // Coleta os equipamentos preenchidos
+      const equipamentosArray = [];
+      const itensHtml = document.querySelectorAll('.item-equipamento');
+      
+      itensHtml.forEach(item => {
+        const cod = item.querySelector('.input-codigo').value.trim();
+        const nome = item.querySelector('.input-nome').value.trim();
+        if (cod && nome) {
+          equipamentosArray.push({ codigo: cod, equipamento: nome });
+        }
+      });
+
+      if (equipamentosArray.length === 0) {
+        statusMsg.style.color = 'var(--cor-perigo)';
+        statusMsg.textContent = '⚠️ Adicione pelo menos um equipamento válido.';
+        btn.disabled = false;
+        btn.textContent = 'Registrar na Planilha';
+        return;
+      }
+
+      // Monta o pacote de dados (Payload)
       const payload = {
         agendamento: document.getElementById('agendamento').value.trim(),
-        codigo: document.getElementById('codigo').value.trim(),
-        equipamento: document.getElementById('nomeEquipamento').value.trim(),
+        cliente: document.getElementById('cliente').value.trim(),
         data: document.getElementById('dataAtual').value,
-        horario: document.getElementById('horarioAtual').value
+        horario: document.getElementById('horarioAtual').value,
+        equipamentos: equipamentosArray
       };
 
       try {
@@ -383,22 +456,23 @@
             body: JSON.stringify(payload)
         });
 
-        // Efeito de sucesso
         statusMsg.style.color = 'var(--cor-sucesso)';
-        statusMsg.textContent = '✅ Sucesso! Agendamento registrado com as Colunas A, B, C, F e G.';
+        statusMsg.textContent = `✅ Sucesso! ${equipamentosArray.length} produto(s) registrado(s) para o Agendamento ${payload.agendamento}.`;
         
-        // Limpa formulário
+        // Limpa e reseta o formulário
         document.getElementById('entradaForm').reset();
-        resetarVisualizacao();
+        document.getElementById('containerEquipamentos').innerHTML = '';
+        itemCount = 0;
+        adicionarEquipamento();
         atualizarDataHora(); 
 
       } catch (error) {
         console.error("Erro no fetch:", error);
         statusMsg.style.color = 'var(--cor-perigo)';
-        statusMsg.textContent = '❌ Ocorreu um erro ao conectar com a Planilha.';
+        statusMsg.textContent = '❌ Ocorreu um erro de conexão com a Planilha.';
       } finally {
         btn.disabled = false;
-        btn.textContent = 'Registrar na Planilha de Agendamentos';
+        btn.textContent = 'Registrar na Planilha';
       }
     });
   </script>
